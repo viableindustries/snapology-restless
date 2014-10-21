@@ -24,6 +24,8 @@ Not yet released.
   objects in addition to strings.
 - #356: rollback the SQLAlchemy session on a failed :http:method:`patch`
   request.
+- #365: allows preprocessors to specify return values on :http:method:`get`
+  requests.
 
 Version 0.14.2
 --------------
