@@ -15,6 +15,9 @@
 """
 import inspect
 
+from flask import json
+from flask import request
+
 from sqlalchemy import and_ as AND
 from sqlalchemy import or_ as OR
 from sqlalchemy.ext.associationproxy import AssociationProxy
@@ -406,6 +409,9 @@ class QueryBuilder(object):
         documentation for :func:`_create_operation` for more information.
 
         """
+
+        licensee = json.loads(request.args.get('licensee', None))
+
         # Adding field filters
         query = session_query(session, model)
         # may raise exception here
@@ -429,7 +435,7 @@ class QueryBuilder(object):
             query = query.limit(search_params.limit)
         if search_params.offset:
             query = query.offset(search_params.offset)
-        return query
+        return query.filter(OR(model.licensee == licensee, model.licensee == None))
 
 
 def create_query(session, model, searchparams):

@@ -32,9 +32,9 @@ from flask import current_app
 from flask import json
 from flask import jsonify as _jsonify
 from flask import request
+from flask import abort
 from flask.views import MethodView
 from mimerender import FlaskMimeRender
-from sqlalchemy import Column
 from sqlalchemy.exc import DataError
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.exc import OperationalError
@@ -42,6 +42,7 @@ from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.query import Query
+from sqlalchemy.sql.schema import Column
 from werkzeug.exceptions import BadRequest
 from werkzeug.exceptions import HTTPException
 from werkzeug.urls import url_quote_plus
@@ -148,38 +149,6 @@ def catch_processing_exceptions(func):
             status = exception.code
             message = exception.description or str(exception)
             return jsonify(message=message), status
-    return decorator
-
-
-def catch_integrity_errors(session):
-    """Returns a decorator that catches database integrity errors.
-
-    `session` is the SQLAlchemy session in which all database transactions will
-    be performed.
-
-    View methods can be wrapped like this::
-
-        @catch_integrity_errors(session)
-        def get(self, *args, **kw):
-            return '...'
-
-    Specifically, functions wrapped with the returned decorator catch
-    :exc:`IntegrityError`s, :exc:`DataError`s, and
-    :exc:`ProgrammingError`s. After the exceptions are caught, the session is
-    rolled back, the exception is logged on the current Flask application, and
-    an error response is returned to the client.
-
-    """
-    def decorator(func):
-        @wraps(func)
-        def wrapped(*args, **kw):
-            try:
-                return func(*args, **kw)
-            except (DataError, IntegrityError, ProgrammingError) as exception:
-                session.rollback()
-                current_app.logger.exception(str(exception))
-                return dict(message=type(exception).__name__), 400
-        return wrapped
     return decorator
 
 
@@ -484,7 +453,7 @@ class API(ModelView):
                  validation_exceptions=None, results_per_page=10,
                  max_results_per_page=100, post_form_preprocessor=None,
                  preprocessors=None, postprocessors=None, primary_key=None,
-                 *args, **kw):
+                 licensee=None, *args, **kw):
         """Instantiates this view with the specified attributes.
 
         `session` is the SQLAlchemy session in which all database transactions
@@ -624,6 +593,7 @@ class API(ModelView):
         self.preprocessors = defaultdict(list)
         self.postprocessors.update(upper_keys(postprocessors or {}))
         self.preprocessors.update(upper_keys(preprocessors or {}))
+        self.licensee = licensee
         # move post_form_preprocessor to preprocessors['POST'] for backward
         # compatibility
         if post_form_preprocessor:
@@ -641,15 +611,6 @@ class API(ModelView):
             self.postprocessors['PATCH_MANY'].append(postprocessor)
         for preprocessor in self.preprocessors['PUT_MANY']:
             self.preprocessors['PATCH_MANY'].append(preprocessor)
-
-        # HACK: We would like to use the :attr:`API.decorators` class attribute
-        # in order to decorate each view method with a decorator that catches
-        # database integrity errors. However, in order to rollback the session,
-        # we need to have a session object available to roll back. Therefore we
-        # need to manually decorate each of the view functions here.
-        decorate = lambda name, f: setattr(self, name, f(getattr(self, name)))
-        for method in ['get', 'post', 'patch', 'put', 'delete']:
-            decorate(method, catch_integrity_errors(self.session))
 
     def _get_column_name(self, column):
         """Retrieve a column name from a column attribute of SQLAlchemy
@@ -976,7 +937,20 @@ class API(ModelView):
         :http:statuscode:`404`.
 
         """
-        inst = get_by(self.session, self.model, instid, self.primary_key)
+
+
+        """
+        VIABLE INDUSTRIES MODICIATION
+        """
+        self.licensee = json.loads(request.args.get('licensee', '{}'))
+        if not self.licensee:
+            abort(403)
+        """
+        / VIABLE INDUSTRIES MODICIATION
+        """
+
+
+        inst = get_by(self.session, self.model, instid, self.primary_key, self.licensee)
         if inst is None:
             return {_STATUS: 404}, 404
         return self._inst_to_dict(inst)
@@ -1058,6 +1032,14 @@ class API(ModelView):
         for preprocessor in self.preprocessors['GET_MANY']:
             preprocessor(search_params=search_params)
 
+        """
+        VIABLE INDUSTRIES MODICIATION
+        """
+        self.licensee = json.loads(request.args.get('licensee', '{}'))
+        """
+        / VIABLE INDUSTRIES MODICIATION
+        """
+
         # perform a filtered search
         try:
             result = search(self.session, self.model, search_params)
@@ -1126,12 +1108,23 @@ class API(ModelView):
         method responds with :http:status:`404`.
 
         """
+
+
+        """
+        VIABLE INDUSTRIES MODICIATION
+        """
+        self.licensee = json.loads(request.args.get('licensee', '{}'))
+        """
+        / VIABLE INDUSTRIES MODICIATION
+        """
+
+
         if instid is None:
             return self._search()
         for preprocessor in self.preprocessors['GET_SINGLE']:
             preprocessor(instance_id=instid)
         # get the instance of the "main" model whose ID is instid
-        instance = get_by(self.session, self.model, instid, self.primary_key)
+        instance = get_by(self.session, self.model, instid, self.primary_key, self.licensee)
         if instance is None:
             return {_STATUS: 404}, 404
         # If no relation is requested, just return the instance. Otherwise,
@@ -1181,11 +1174,25 @@ class API(ModelView):
            Added the `relationname` keyword argument.
 
         """
+
+
+        """
+        VIABLE INDUSTRIES MODICIATION
+        """
+        self.licensee = json.loads(request.args.get('licensee', '{}'))
+        if not self.licensee:
+            abort(403)
+        """
+        / VIABLE INDUSTRIES MODICIATION
+        """
+
         was_deleted = False
         for preprocessor in self.preprocessors['DELETE']:
             preprocessor(instance_id=instid, relation_name=relationname,
                          relation_instance_id=relationinstid)
-        inst = get_by(self.session, self.model, instid, self.primary_key)
+        # inst = get_by(self.session, self.model, instid, self.primary_key)
+        inst = get_by(self.session, self.model, instid, self.primary_key, self.licensee)
+
         if relationname:
             # If the request is ``DELETE /api/person/1/computers``, error 400.
             if not relationinstid:
@@ -1202,6 +1209,7 @@ class API(ModelView):
             was_deleted = len(self.session.dirty) > 0
         elif inst is not None:
             self.session.delete(inst)
+            # self.session.delete(inst).filter(self.model.licensee == self.licensee)
             was_deleted = len(self.session.deleted) > 0
         self.session.commit()
         for postprocessor in self.postprocessors['DELETE']:
@@ -1326,6 +1334,10 @@ class API(ModelView):
             return result, 201, headers
         except self.validation_exceptions as exception:
             return self._handle_validation_exception(exception)
+        except (DataError, IntegrityError, ProgrammingError) as exception:
+            self.session.rollback()
+            current_app.logger.exception(str(exception))
+            return dict(message=type(exception).__name__), 400
 
     def patch(self, instid, relationname, relationinstid):
         """Updates the instance specified by ``instid`` of the named model, or
@@ -1352,6 +1364,17 @@ class API(ModelView):
            Added the `relationname` keyword argument.
 
         """
+
+        """
+        VIABLE INDUSTRIES MODICIATION
+        """
+        self.licensee = json.loads(request.args.get('licensee', '{}'))
+        if not self.licensee:
+            abort(403)
+        """
+        / VIABLE INDUSTRIES MODICIATION
+        """
+
         content_type = request.headers.get('Content-Type', None)
         content_is_json = content_type.startswith('application/json')
         is_msie = _is_msie8or9()
@@ -1405,11 +1428,14 @@ class API(ModelView):
                 return dict(message='Unable to construct query'), 400
         else:
             # create a SQLAlchemy Query which has exactly the specified row
+
             query = query_by_primary_key(self.session, self.model, instid,
-                                         self.primary_key)
+                                         self.licensee, self.primary_key)
+
             if query.count() == 0:
                 return {_STATUS: 404}, 404
             assert query.count() == 1, 'Multiple rows with same ID'
+
 
         try:
             relations = self._update_relations(query, data)
@@ -1435,6 +1461,10 @@ class API(ModelView):
         except self.validation_exceptions as exception:
             current_app.logger.exception(str(exception))
             return self._handle_validation_exception(exception)
+        except (DataError, IntegrityError, ProgrammingError) as exception:
+            self.session.rollback()
+            current_app.logger.exception(str(exception))
+            return dict(message=type(exception).__name__), 400
 
         # Perform any necessary postprocessing.
         if patchmany:

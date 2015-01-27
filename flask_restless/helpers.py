@@ -16,6 +16,7 @@ from dateutil.parser import parse as parse_datetime
 from sqlalchemy import Date
 from sqlalchemy import DateTime
 from sqlalchemy import Interval
+from sqlalchemy import or_
 from sqlalchemy.exc import NoInspectionAvailable
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.associationproxy import AssociationProxy
@@ -330,13 +331,9 @@ def to_dict(instance, deep=None, exclude=None, include=None,
                   if not (col.startswith('__') or col in COLUMN_BLACKLIST))
     # add any included methods
     if include_methods is not None:
-        for method in include_methods:
-            if '.' not in method:
-                value = getattr(instance, method)
-                # Allow properties and static attributes in include_methods
-                if callable(value):
-                    value = value()
-                result[method] = value
+        result.update(dict((method, getattr(instance, method)())
+                           for method in include_methods
+                           if not '.' in method))
     # Check for objects in the dictionary that may not be serializable by
     # default. Convert datetime objects to ISO 8601 format, convert UUID
     # objects to hexadecimal strings, etc.
@@ -460,7 +457,7 @@ def evaluate_functions(session, model, functions):
     return dict(zip(funcnames, evaluated))
 
 
-def query_by_primary_key(session, model, primary_key_value, primary_key=None):
+def query_by_primary_key(session, model, primary_key_value, licensee, primary_key=None):
     """Returns a SQLAlchemy query object containing the result of querying
     `model` for instances whose primary key has the value `primary_key_value`.
 
@@ -472,10 +469,22 @@ def query_by_primary_key(session, model, primary_key_value, primary_key=None):
     """
     pk_name = primary_key or primary_key_name(model)
     query = session_query(session, model)
-    return query.filter(getattr(model, pk_name) == primary_key_value)
 
+    # return query.filter(getattr(model, pk_name) == primary_key_value)
 
-def get_by(session, model, primary_key_value, primary_key=None):
+    """
+
+    ***VIABLE INDUSTRIES MODIFICATION***
+
+    Changed to enable us to do Group specific filtering
+
+    """
+    return query.filter(getattr(model, pk_name) == primary_key_value).filter(or_(model.licensee == licensee, model.licensee == None))
+    """
+    / VIABLE INDUSTRIES MODIFICATION
+    """
+
+def get_by(session, model, primary_key_value, primary_key=None, licensee=None):
     """Returns the first instance of `model` whose primary key has the value
     `primary_key_value`, or ``None`` if no such instance exists.
 
@@ -484,7 +493,7 @@ def get_by(session, model, primary_key_value, primary_key=None):
 
     """
     result = query_by_primary_key(session, model, primary_key_value,
-                                  primary_key)
+                                  licensee, primary_key)
     return result.first()
 
 
