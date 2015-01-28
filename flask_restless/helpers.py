@@ -480,7 +480,10 @@ def query_by_primary_key(session, model, primary_key_value, licensee, primary_ke
 
     """
     if hasattr(model, 'licensee'):
-        return query.filter(getattr(model, pk_name) == primary_key_value).filter(or_(model.licensee == licensee, model.licensee == None))
+        try:
+            return query.filter(getattr(model, pk_name) == primary_key_value).filter(or_(model.licensee == licensee, model.licensee == None))
+        except:
+            return query.filter(getattr(model, pk_name) == primary_key_value).filter(or_(model.licensee.any(id=licensee)))
     else:
         return query.filter(getattr(model, pk_name) == primary_key_value)
     """

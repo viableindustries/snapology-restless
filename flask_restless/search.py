@@ -435,7 +435,10 @@ class QueryBuilder(object):
 
         if hasattr(model, 'licensee'):
             licensee = json.loads(request.args.get('licensee', None))
-            return query.filter(OR(model.licensee == licensee, model.licensee == None))
+            try:
+                return query.filter(or_(model.licensee == licensee, model.licensee == None))
+            except:
+                return query.filter(or_(model.licensee.any(id=licensee)))
         else:
             return query
 
