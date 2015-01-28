@@ -15,11 +15,13 @@
 """
 import inspect
 
+from types import ClassType
+
 from flask import json
 from flask import request
 
 from sqlalchemy import and_ as AND
-from sqlalchemy import or_ as OR
+from sqlalchemy import or_
 from sqlalchemy.ext.associationproxy import AssociationProxy
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 
@@ -435,6 +437,7 @@ class QueryBuilder(object):
 
         if hasattr(model, 'licensee'):
             licensee = json.loads(request.args.get('licensee', None))
+
             try:
                 return query.filter(or_(model.licensee == licensee, model.licensee == None))
             except:
