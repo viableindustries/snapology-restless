@@ -479,7 +479,7 @@ def query_by_primary_key(session, model, primary_key_value, licensee, primary_ke
     Changed to enable us to do Group specific filtering
 
     """
-    if hasattr(model, 'licensee'):
+    if hasattr(model, 'licensee') and licensee:
         try:
             return query.filter(getattr(model, pk_name) == primary_key_value).filter(or_(model.licensee == licensee, model.licensee == None))
         except:
