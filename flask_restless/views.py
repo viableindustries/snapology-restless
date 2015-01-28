@@ -942,9 +942,10 @@ class API(ModelView):
         """
         VIABLE INDUSTRIES MODICIATION
         """
-        self.licensee = json.loads(request.args.get('licensee', '{}'))
-        if not self.licensee:
-            abort(403)
+        if hasattr(self.model, 'licensee'):
+            self.licensee = json.loads(request.args.get('licensee', '{}'))
+            if not self.licensee:
+                abort(403)
         """
         / VIABLE INDUSTRIES MODICIATION
         """
@@ -1179,9 +1180,10 @@ class API(ModelView):
         """
         VIABLE INDUSTRIES MODICIATION
         """
-        self.licensee = json.loads(request.args.get('licensee', '{}'))
-        if not self.licensee:
-            abort(403)
+        if hasattr(self.model, 'licensee'):
+            self.licensee = json.loads(request.args.get('licensee', '{}'))
+            if not self.licensee:
+                abort(403)
         """
         / VIABLE INDUSTRIES MODICIATION
         """
@@ -1367,9 +1369,10 @@ class API(ModelView):
         """
         VIABLE INDUSTRIES MODICIATION
         """
-        self.licensee = json.loads(request.args.get('licensee', '{}'))
-        if not self.licensee:
-            abort(403)
+        if hasattr(self.model, 'licensee'):
+            self.licensee = json.loads(request.args.get('licensee', '{}'))
+            if not self.licensee:
+                abort(403)
         """
         / VIABLE INDUSTRIES MODICIATION
         """
