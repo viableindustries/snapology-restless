@@ -479,7 +479,10 @@ def query_by_primary_key(session, model, primary_key_value, licensee, primary_ke
     Changed to enable us to do Group specific filtering
 
     """
-    return query.filter(getattr(model, pk_name) == primary_key_value).filter(or_(model.licensee == licensee, model.licensee == None))
+    if licensee in model:
+        return query.filter(getattr(model, pk_name) == primary_key_value).filter(or_(model.licensee == licensee, model.licensee == None))
+    else:
+        return query.filter(getattr(model, pk_name) == primary_key_value)
     """
     / VIABLE INDUSTRIES MODIFICATION
     """

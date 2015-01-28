@@ -1209,7 +1209,6 @@ class API(ModelView):
             was_deleted = len(self.session.dirty) > 0
         elif inst is not None:
             self.session.delete(inst)
-            # self.session.delete(inst).filter(self.model.licensee == self.licensee)
             was_deleted = len(self.session.deleted) > 0
         self.session.commit()
         for postprocessor in self.postprocessors['DELETE']:

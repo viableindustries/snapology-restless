@@ -435,7 +435,11 @@ class QueryBuilder(object):
             query = query.limit(search_params.limit)
         if search_params.offset:
             query = query.offset(search_params.offset)
-        return query.filter(OR(model.licensee == licensee, model.licensee == None))
+
+        if licensee in model:
+            return query.filter(OR(model.licensee == licensee, model.licensee == None))
+        else:
+            return query
 
 
 def create_query(session, model, searchparams):
