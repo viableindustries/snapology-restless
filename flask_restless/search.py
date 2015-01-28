@@ -409,9 +409,6 @@ class QueryBuilder(object):
         documentation for :func:`_create_operation` for more information.
 
         """
-
-        licensee = json.loads(request.args.get('licensee', None))
-
         # Adding field filters
         query = session_query(session, model)
         # may raise exception here
@@ -436,7 +433,8 @@ class QueryBuilder(object):
         if search_params.offset:
             query = query.offset(search_params.offset)
 
-        if licensee in model:
+        if hasattr(model, 'licensee'):
+            licensee = json.loads(request.args.get('licensee', None))
             return query.filter(OR(model.licensee == licensee, model.licensee == None))
         else:
             return query
