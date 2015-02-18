@@ -19,6 +19,7 @@ from sqlalchemy import Interval
 from sqlalchemy import or_
 from sqlalchemy.exc import NoInspectionAvailable
 from sqlalchemy.exc import OperationalError
+from sqlalchemy.exc import InvalidRequestError
 from sqlalchemy.ext.associationproxy import AssociationProxy
 from sqlalchemy.ext import hybrid
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -482,6 +483,8 @@ def query_by_primary_key(session, model, primary_key_value, licensee, primary_ke
     if hasattr(model, 'licensee') and licensee:
         try:
             return query.filter(getattr(model, pk_name) == primary_key_value).filter(or_(model.licensee == licensee, model.licensee == None))
+        except InvalidRequestError:
+            return query.filter(getattr(model, pk_name) == primary_key_value)
         except:
             return query.filter(getattr(model, pk_name) == primary_key_value).filter(or_(model.licensee.any(id=licensee)))
     else:
