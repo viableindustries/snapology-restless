@@ -1266,10 +1266,10 @@ class API(ModelView):
 
         # Check for any request parameter naming a column which does not exist
         # on the current model.
-        for field in data:
-            if not has_field(self.model, field):
-                msg = "Model does not have field '{0}'".format(field)
-                return dict(message=msg), 400
+        for field in data.items():
+            if not has_field(self.model, field[0]):
+                del data[field[0]]
+
 
         # Getting the list of relations that will be added later
         cols = get_columns(self.model)
@@ -1307,6 +1307,7 @@ class API(ModelView):
                     # model has single related object
                     subinst = get_or_create(self.session, submodel,
                                             data[col])
+                    print 'col', col, data[col]
                     setattr(instance, col, subinst)
 
             # add the created model to the session
@@ -1416,10 +1417,9 @@ class API(ModelView):
 
         # Check for any request parameter naming a column which does not exist
         # on the current model.
-        for field in data:
-            if not has_field(self.model, field):
-                msg = "Model does not have field '{0}'".format(field)
-                return dict(message=msg), 400
+        for field in data.items():
+            if not has_field(self.model, field[0]):
+                del data[field[0]]
 
         if patchmany:
             try:
