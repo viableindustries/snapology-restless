@@ -339,12 +339,19 @@ def to_dict(instance, deep=None, exclude=None, include=None,
     # default. Convert datetime objects to ISO 8601 format, convert UUID
     # objects to hexadecimal strings, etc.
     for key, value in result.items():
-        if isinstance(value, (datetime.date, datetime.time)):
-            result[key] = value.isoformat()
-        elif isinstance(value, uuid.UUID):
-            result[key] = str(value)
-        elif key not in column_attrs and is_mapped_class(type(value)):
-            result[key] = to_dict(value)
+        if "password" == key:
+            del result["password"]
+        elif "current_login_ip" == key:
+            del result["current_login_ip"]
+        elif "last_login_ip" == key:
+            del result["last_login_ip"]
+        else:
+            if isinstance(value, (datetime.date, datetime.time)):
+                result[key] = value.isoformat()
+            elif isinstance(value, uuid.UUID):
+                result[key] = str(value)
+            elif key not in column_attrs and is_mapped_class(type(value)):
+                result[key] = to_dict(value)
     # recursively call _to_dict on each of the `deep` relations
     deep = deep or {}
     for relation, rdeep in deep.items():
